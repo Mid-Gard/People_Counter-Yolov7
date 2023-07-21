@@ -6,6 +6,8 @@ import cv2
 import torch
 import torch.backends.cudnn as cudnn
 from numpy import random
+import os
+import datetime
 
 # Custom Modules
 import config
@@ -20,15 +22,24 @@ from utils.torch_utils import select_device, load_classifier, time_synchronized,
 
 def detect(save_img=False):
     source, weights, view_img, save_txt, imgsz, trace, webApp = opt.source, opt.weights, opt.view_img, opt.save_txt, opt.img_size, not opt.no_trace, opt.webApp
-    source = config.IP_Url
+    # source = config.IP_Url
+    source='sources.txt'
     weights = 'yolov7.pt'
-    save_img = not opt.nosave and not source.endswith('.txt')  # save inference images
+    # save_img = not opt.nosave and not source.endswith('.txt')  # save inference images, That is basically if you are storing all teh Ip webcame in the soruces.txt then since all are not of same resolution, it makes the save_img flag False so it dont save the footage.
+    save_img = True # Okay so the problem is if you are using multiple cameras of defferent resolution, then it creates a video, but it doest have the higer reso camera frames.
+    save_txt = True
     webcam = source.isnumeric() or source.endswith('.txt') or source.lower().startswith(
         ('rtsp://', 'rtmp://', 'http://', 'https://'))
 
     # Directories
-    save_dir = Path(increment_path(Path(opt.project) / opt.name, exist_ok=opt.exist_ok))  # increment run
-    (save_dir / 'labels' if save_txt else save_dir).mkdir(parents=True, exist_ok=True)  # make dir
+    today_date = datetime.datetime.now().strftime("%Y-%m-%d")  # Get today's date in YYYY-MM-DD format
+    opt.project = 'Output/'+today_date
+    current_time = datetime.datetime.now().strftime("%H-%M-%S")
+    opt.name = ''
+    # save_dir = Path(increment_path(Path(opt.project), exist_ok=opt.exist_ok))  # increment run
+    save_dir = Path(opt.project, exist_ok=opt.exist_ok)  # increment run
+    (save_dir if save_txt else save_dir).mkdir(parents=True, exist_ok=True)  # make dir
+
 
     # Initialize
     set_logging()
@@ -39,6 +50,7 @@ def detect(save_img=False):
     model = attempt_load(weights, map_location=device)  # load FP32 model
     stride = int(model.stride.max())  # model stride
     imgsz = check_img_size(imgsz, s=stride)  # check img_size
+
 
     if trace:
         model = TracedModel(model, device, opt.img_size)
@@ -116,8 +128,9 @@ def detect(save_img=False):
                 p, s, im0, frame = path, '', im0s, getattr(dataset, 'frame', 0)
 
             p = Path(p)  # to Path
-            save_path = str(save_dir / p.name)  # img.jpg
-            txt_path = str(save_dir / 'labels' / p.stem) + ('' if dataset.mode == 'image' else f'_{frame}')  # img.txt
+            # current_time = datetime.datetime.now().strftime("%H-%M-%S")
+            save_path = str(save_dir / current_time)  # img.jpg
+            txt_path = str(save_dir /  current_time)  # img.txt
             gn = torch.tensor(im0.shape)[[1, 0, 1, 0]]  # normalization gain whwh
             if len(det):
                 # Rescale boxes from img_size to im0 size
@@ -129,20 +142,21 @@ def detect(save_img=False):
                     # s += f"{n} {names[int(c)]}{'s' * (n > 1)}, "  # This line creates for all types of objects but i need for only person, hence use below line.
                     s += f"{n} {names[int(c)]}{'s' * (n > 1)}"
 
-                if save_txt:  # Write to filenormalized xywh
+                frame_time = datetime.datetime.now().strftime("%H-%M-%S")
+                if save_txt and not dataset.mode == 'image':  # Write to file normalized xywh
                     with open(txt_path + '.txt', 'a') as f:
-                        f.write(('\n ' + s + '\n'))
+                        f.write(('\nTime : '+ frame_time+ '\nRESULT : ' + s))
 
                 # Only do this if you are showing the cv window
                 if view_img:
                     # Write results in txt file and draw box in the image
                     for *xyxy, conf, cls in reversed(det):
                         # Enable Below code if you want to save the confidence
-                        if save_txt:  # Write to file
+                        if save_txt and not dataset.mode == 'image':  # Write to file
                             xywh = (xyxy2xywh(torch.tensor(xyxy).view(1, 4)) / gn).view(-1).tolist()  # normalized xywh
                             line = (cls, *xywh, conf) if opt.save_conf else (cls, *xywh)  # label format
                             with open(txt_path + '.txt', 'a') as f:
-                                f.write(('%g ' * len(line)).rstrip() % line + '\n')
+                                f.write(('\nProbability :'+ ' %g ' * len(line)).rstrip() % line + '\n')
                         # Add bbox to image
                         if save_img or view_img:
                             label = f'{names[int(cls)]} {conf:.2f}'
@@ -164,7 +178,9 @@ def detect(save_img=False):
             # Stream results
             if view_img:
                 # Display the image in a window
-                cv2.imshow(str(p), im0)
+                cv2.putText(im0, 'Result : ' + s[3:], (10, im0.shape[0] - 10), cv2.FONT_HERSHEY_SIMPLEX, 1.2, (255, 255, 255), 2)
+                tit = 'People Detector / Counter'
+                cv2.imshow(tit , im0)
 
                 # Wait for a key press
                 if cv2.waitKey(1) == ord('q'):  # q to quit
@@ -198,6 +214,7 @@ def detect(save_img=False):
         #     print(f"Results saved to {save_dir}{s}")
 
         print(f'Done. ({time.time() - t0:.3f}s)')
+        # time.sleep(1)
 
 
 if __name__ == '__main__':
@@ -217,7 +234,7 @@ if __name__ == '__main__':
     parser.add_argument('--agnostic-nms', action='store_true', help='class-agnostic NMS')
     parser.add_argument('--augment', action='store_true', help='augmented inference')
     parser.add_argument('--update', action='store_true', help='update all models')
-    parser.add_argument('--project', default='runs/detect', help='save results to project/name')
+    parser.add_argument('--project', default='Output', help='save results to project/name')
     parser.add_argument('--name', default='object_tracking', help='save results to project/name')
     parser.add_argument('--exist-ok', action='store_true', help='existing project/name ok, do not increment')
     parser.add_argument('--no-trace', action='store_true', help='don`t trace model')
