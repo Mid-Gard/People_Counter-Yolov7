@@ -32,3 +32,7 @@ python3 -m pip install -r requirements.txt
 ```
 python detect.py
 ```
+
+## TODO
+1. Not able to display the frames, when using multicamera setup, only able to store the data. This may be due to the resolution variations of the different camearas used.
+2. Need to create a good GUI, with better control features, will  able to show may be different camera footage on multiple boxes in same screen.
