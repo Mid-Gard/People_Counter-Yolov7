@@ -10,28 +10,24 @@
 ## Steps to run Code
 - Clone the repository.
 
-- Goto the cloned folder.
-```
-cd UsingYolov7
-```
+- Goto the cloned folder: ``` cd UsingYolov7 ```
+
 - Create a  envirnoment (Recommended, If you dont want to disturb python packages)
 
 - Install all the packages :
 ```
+
 ### For Linux Users
 python3 -m pip install -r requirements.txt
 
 ### For Window Users
-cd yolov7objtracking
-python3 -m pip install -r requirements.txt
+python -m pip install -r requirements.txt
 ```
 
-- Give the IP address of the Camera in the cofig.py file, just replace the value of the varialbe `IP_Url` with IP address of the webcam.
+- Give the IP address of the Camera in the sources.txt file, keep adding the urls of the cameras on new line at a time.
 
-- Run the project:
-```
-python detect.py
-```
+- Run the project: ``` python detect.py ```
+
 
 ## TODO
 1. Not able to display the frames, when using multicamera setup, only able to store the data. This may be due to the resolution variations of the different camearas used.
