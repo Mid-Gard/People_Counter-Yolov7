@@ -1,2 +1,1 @@
-http://192.168.0.104:8080/video?type=some.mjpeg
-http://192.168.0.100:8080/video?type=some.mjpeg
+rtsp://admin:Crl@12345@192.168.0.102:554/cam/realmonitor?channel=5&subtype=0
