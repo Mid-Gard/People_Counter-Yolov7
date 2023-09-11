@@ -1,4 +1,4 @@
-# People Counter Using ML
+# People Counter Using ML Using Yolo V7 from Openvino
 
 ## Features
 - Added Label for Every Track
