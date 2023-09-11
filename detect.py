@@ -21,12 +21,23 @@ from utils.torch_utils import select_device, load_classifier, time_synchronized,
 
 
 def detect(save_img=False):
-    source, weights, view_img, save_txt, imgsz, trace, webApp = opt.source, opt.weights, opt.view_img, opt.save_txt, opt.img_size, not opt.no_trace, opt.webApp
+    # source, weights, view_img, save_txt, imgsz, trace= opt.source, opt.weights, opt.view_img, opt.save_txt, opt.img_size, not opt.no_trace
+    
     # source = config.IP_Url
     # source='sources.txt'
     source = 0
     source = str(source)
     weights = 'yolov7.pt'
+    # view_img = 
+    # save_txt = 
+    device = 'cpu'
+    imgsz = 640
+    augment = True
+    exist_ok = True
+    trace = 0
+    project = 'Output'
+    classes = 0            # filter by class: --class 0, or --class 0 2 3
+    # agnostic-nms = True
     # save_img = not opt.nosave and not source.endswith('.txt')  # save inference images, That is basically if you are storing all teh Ip webcame in the soruces.txt then since all are not of same resolution, it makes the save_img flag False so it dont save the footage.
     save_img = True # Okay so the problem is if you are using multiple cameras of defferent resolution, then it creates a video, but it doest have the higer reso camera frames.
     save_txt = True
@@ -39,13 +50,13 @@ def detect(save_img=False):
     current_time = datetime.datetime.now().strftime("%H-%M-%S")
     opt.name = ''
     # save_dir = Path(increment_path(Path(opt.project), exist_ok=opt.exist_ok))  # increment run
-    save_dir = Path(opt.project, exist_ok=opt.exist_ok)  # increment run
+    save_dir = Path(project, exist_ok=exist_ok)  # increment run
     (save_dir if save_txt else save_dir).mkdir(parents=True, exist_ok=True)  # make dir
 
 
     # Initialize
     set_logging()
-    device = select_device(opt.device)
+    device = select_device(device)
     half = device.type != 'cpu'  # half precision only supported on CUDA
 
     # Load model
@@ -105,14 +116,14 @@ def detect(save_img=False):
 
         # Inference
         t1 = time_synchronized()
-        pred = model(img, augment=opt.augment)[0]
+        pred = model(img, augment=augment)[0]
         t2 = time_synchronized()
 
         modelDelay = t2 - t0
         # print(f'The Model Delay : {modelDelay}')
 
         # Apply NMS
-        pred = non_max_suppression(pred, opt.conf_thres, opt.iou_thres, classes=opt.classes, agnostic=opt.agnostic_nms)
+        pred = non_max_suppression(pred, opt.conf_thres, opt.iou_thres, classes=classes, agnostic=opt.agnostic_nms)
         t3 = time_synchronized()
 
         NMSDelay = t3 - t2
@@ -168,15 +179,6 @@ def detect(save_img=False):
             # print(f'{s}Done. ({(1E3 * (t2 - t1)):.1f}ms) Inference, ({(1E3 * (t3 - t2)):.1f}ms) NMS')
             print(s)
 
-            # Create an API for the webApp
-            # if webApp:
-            #     try:
-            #         Serverurl = "http://localhost:5000/update_data"
-            #         data = {'num_people': s}
-            #         response = requests.post(Serverurl, json=data)
-            #     except:
-            #         print("Failed to send to WebApp")
-
             # Stream results
             if view_img:
                 # Display the image in a window
@@ -221,27 +223,20 @@ def detect(save_img=False):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--weights', nargs='+', type=str, default='yolov7.pt', help='model.pt path(s)')
-    parser.add_argument('--download', action='store_true', help='download model weights automatically')
-    parser.add_argument('--no-download', dest='download', action='store_false')
-    parser.add_argument('--source', type=str, default='inference/images', help='source')  # file/folder, 0 for webcam
+    parser.add_argument('--update', action='store_true', help='update all models')
+
+    
+    # You can remove the following arguments also and set those values in the detect() function itself, only if you find out how to se the variables like that below with -
     parser.add_argument('--img-size', type=int, default=640, help='inference size (pixels)')
+    parser.add_argument('--agnostic-nms', action='store_true', help='class-agnostic NMS')
+    parser.add_argument('--save-conf', action='store_true', help='save confidences in --save-txt labels')
     parser.add_argument('--conf-thres', type=float, default=0.25, help='object confidence threshold')
     parser.add_argument('--iou-thres', type=float, default=0.45, help='IOU threshold for NMS')
-    parser.add_argument('--device', default='', help='cuda device, i.e. 0 or 0,1,2,3 or cpu')
-    parser.add_argument('--save-txt', action='store_true', help='save results to *.txt')
-    parser.add_argument('--save-conf', action='store_true', help='save confidences in --save-txt labels')
-    parser.add_argument('--nosave', action='store_true', help='do not save images/videos')
-    parser.add_argument('--classes', nargs='+', type=int, default=0, help='filter by class: --class 0, or --class 0 2 3')
-    parser.add_argument('--agnostic-nms', action='store_true', help='class-agnostic NMS')
-    parser.add_argument('--augment', action='store_true', help='augmented inference')
-    parser.add_argument('--update', action='store_true', help='update all models')
-    parser.add_argument('--project', default='Output', help='save results to project/name')
-    parser.add_argument('--name', default='object_tracking', help='save results to project/name')
-    parser.add_argument('--exist-ok', action='store_true', help='existing project/name ok, do not increment')
-    parser.add_argument('--no-trace', action='store_true', help='don`t trace model')
-    parser.add_argument('--view-img', action='store_true', help='display results')
-    parser.add_argument('--webApp',default=0,  help='Create an API for the WebApp')
+
+
+
+
+
     parser.set_defaults(download=True)
     opt = parser.parse_args()
     print(opt)
