@@ -23,7 +23,9 @@ from utils.torch_utils import select_device, load_classifier, time_synchronized,
 def detect(save_img=False):
     source, weights, view_img, save_txt, imgsz, trace, webApp = opt.source, opt.weights, opt.view_img, opt.save_txt, opt.img_size, not opt.no_trace, opt.webApp
     # source = config.IP_Url
-    source='sources.txt'
+    # source='sources.txt'
+    source = 0
+    source = str(source)
     weights = 'yolov7.pt'
     # save_img = not opt.nosave and not source.endswith('.txt')  # save inference images, That is basically if you are storing all teh Ip webcame in the soruces.txt then since all are not of same resolution, it makes the save_img flag False so it dont save the footage.
     save_img = True # Okay so the problem is if you are using multiple cameras of defferent resolution, then it creates a video, but it doest have the higer reso camera frames.
@@ -127,7 +129,7 @@ def detect(save_img=False):
             else:
                 p, s, im0, frame = path, '', im0s, getattr(dataset, 'frame', 0)
 
-            p = Path(p)  # to Path
+            p = Path(p)
             # current_time = datetime.datetime.now().strftime("%H-%M-%S")
             save_path = str(save_dir / current_time)  # img.jpg
             txt_path = str(save_dir /  current_time)  # img.txt
