@@ -9,3 +9,8 @@ env/
 venv/
 /env
 env
+
+*.png
+*.jpg
+*.jpeg
+*.pyc
