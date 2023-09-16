@@ -3,4 +3,6 @@ runs/.gitignore
 /Output
 MyReadme.md
 yolov7.pt
-traced_model.pt
+*.pt
+/env
+env/
