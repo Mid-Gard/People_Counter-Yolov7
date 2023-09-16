@@ -1,29 +1,33 @@
 import argparse
 import time
 from pathlib import Path
-
+import requests
 import cv2
 import torch
 import torch.backends.cudnn as cudnn
 from numpy import random
+import os
 import datetime
 
+# Custom Modules
+import config
 from models.experimental import attempt_load
 from utils.datasets import LoadStreams, LoadImages
-from utils.general import check_img_size, check_requirements, check_imshow, non_max_suppression, apply_classifier, \
-    scale_coords, xyxy2xywh, strip_optimizer, set_logging, increment_path
+from utils.general import check_img_size, check_imshow, non_max_suppression, apply_classifier, \
+    scale_coords, xyxy2xywh, strip_optimizer, set_logging, \
+    increment_path
 from utils.plots import plot_one_box
 from utils.torch_utils import select_device, load_classifier, time_synchronized, TracedModel
 
 
-def detect():
-    source, weights, view_img, save_txt, imgsz, trace = opt.source, opt.weights, opt.view_img, opt.save_txt, opt.img_size, not opt.no_trace
+def detect(save_img=False):
+    # source, weights, view_img, save_txt, imgsz, trace= opt.source, opt.weights, opt.view_img, opt.save_txt, opt.img_size, not opt.no_trace
     
-    # source = http://192.168.29.187:8080/video?type=some.mjpeg
-    source='sources.txt'
-    # source = 0
-    # source = str(source)
-    weights = 'model/yolov7-tiny.pt'
+    # source = config.IP_Url
+    # source='sources.txt'
+    source = 0
+    source = str(source)
+    weights = 'yolov7.pt'
     # view_img = 
     # save_txt = 
     device = 'cpu'
@@ -32,9 +36,11 @@ def detect():
     exist_ok = True
     trace = 0
     project = 'Output'
-    save_img = True
-    
-    save_img = not opt.nosave and not source.endswith('.txt')  # save inference images
+    classes = 0            # filter by class: --class 0, or --class 0 2 3
+    # agnostic-nms = True
+    # save_img = not opt.nosave and not source.endswith('.txt')  # save inference images, That is basically if you are storing all teh Ip webcame in the soruces.txt then since all are not of same resolution, it makes the save_img flag False so it dont save the footage.
+    save_img = True # Okay so the problem is if you are using multiple cameras of defferent resolution, then it creates a video, but it doest have the higer reso camera frames.
+    save_txt = True
     webcam = source.isnumeric() or source.endswith('.txt') or source.lower().startswith(
         ('rtsp://', 'rtmp://', 'http://', 'https://'))
 
@@ -43,18 +49,21 @@ def detect():
     opt.project = 'Output/'+today_date
     current_time = datetime.datetime.now().strftime("%H-%M-%S")
     opt.name = ''
+    # save_dir = Path(increment_path(Path(opt.project), exist_ok=opt.exist_ok))  # increment run
     save_dir = Path(project, exist_ok=exist_ok)  # increment run
     (save_dir if save_txt else save_dir).mkdir(parents=True, exist_ok=True)  # make dir
 
+
     # Initialize
     set_logging()
-    device = select_device(opt.device)
+    device = select_device(device)
     half = device.type != 'cpu'  # half precision only supported on CUDA
 
     # Load model
     model = attempt_load(weights, map_location=device)  # load FP32 model
     stride = int(model.stride.max())  # model stride
     imgsz = check_img_size(imgsz, s=stride)  # check img_size
+
 
     if trace:
         model = TracedModel(model, device, opt.img_size)
@@ -97,7 +106,8 @@ def detect():
             img = img.unsqueeze(0)
 
         # Warmup
-        if device.type != 'cpu' and (old_img_b != img.shape[0] or old_img_h != img.shape[2] or old_img_w != img.shape[3]):
+        if device.type != 'cpu' and (
+                old_img_b != img.shape[0] or old_img_h != img.shape[2] or old_img_w != img.shape[3]):
             old_img_b = img.shape[0]
             old_img_h = img.shape[2]
             old_img_w = img.shape[3]
@@ -106,13 +116,18 @@ def detect():
 
         # Inference
         t1 = time_synchronized()
-        with torch.no_grad():   # Calculating gradients would cause a GPU memory leak
-            pred = model(img, augment=opt.augment)[0]
+        pred = model(img, augment=augment)[0]
         t2 = time_synchronized()
 
+        modelDelay = t2 - t0
+        # print(f'The Model Delay : {modelDelay}')
+
         # Apply NMS
-        pred = non_max_suppression(pred, opt.conf_thres, opt.iou_thres, classes=opt.classes, agnostic=opt.agnostic_nms)
+        pred = non_max_suppression(pred, opt.conf_thres, opt.iou_thres, classes=classes, agnostic=opt.agnostic_nms)
         t3 = time_synchronized()
+
+        NMSDelay = t3 - t2
+        # print(f'The Model Delay : {NMSDelay}')
 
         # Apply Classifier
         if classify:
@@ -125,7 +140,8 @@ def detect():
             else:
                 p, s, im0, frame = path, '', im0s, getattr(dataset, 'frame', 0)
 
-            p = Path(p)  # to Path
+            p = Path(p)
+            # current_time = datetime.datetime.now().strftime("%H-%M-%S")
             save_path = str(save_dir / current_time)  # img.jpg
             txt_path = str(save_dir /  current_time)  # img.txt
             gn = torch.tensor(im0.shape)[[1, 0, 1, 0]]  # normalization gain whwh
@@ -138,7 +154,7 @@ def detect():
                     n = (det[:, -1] == c).sum()  # detections per class
                     # s += f"{n} {names[int(c)]}{'s' * (n > 1)}, "  # This line creates for all types of objects but i need for only person, hence use below line.
                     s += f"{n} {names[int(c)]}{'s' * (n > 1)}"
-                    
+
                 frame_time = datetime.datetime.now().strftime("%H-%M-%S")
                 if save_txt and not dataset.mode == 'image':  # Write to file normalized xywh
                     with open(txt_path + '.txt', 'a') as f:
@@ -169,14 +185,7 @@ def detect():
                 cv2.putText(im0, 'Result : ' + s[3:], (10, im0.shape[0] - 10), cv2.FONT_HERSHEY_SIMPLEX, 1.2, (255, 255, 255), 2)
                 tit = 'People Detector / Counter'
                 cv2.imshow(tit , im0)
-            
-            # Tkinter GUI
-            
-            
-            
-            
-            
-                
+
                 # Wait for a key press
                 if cv2.waitKey(1) == ord('q'):  # q to quit
                     cv2.destroyAllWindows()
@@ -197,10 +206,11 @@ def detect():
                             w = int(vid_cap.get(cv2.CAP_PROP_FRAME_WIDTH))
                             h = int(vid_cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
                         else:  # stream
-                            fps, w, h = 30, im0.shape[1], im0.shape[0]
+                            fps, w, h = 15, im0.shape[1], im0.shape[0]
                             save_path += '.mp4'
                         vid_writer = cv2.VideoWriter(save_path, cv2.VideoWriter_fourcc(*'mp4v'), fps, (w, h))
                     vid_writer.write(im0)
+                # print("Video Saved")
 
         # This code is just to print data
         # if save_txt or save_img:
@@ -213,27 +223,28 @@ def detect():
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--weights', nargs='+', type=str, default='yolov7.pt', help='model.pt path(s)')
-    parser.add_argument('--source', type=str, default='inference/images', help='source')  # file/folder, 0 for webcam
+    parser.add_argument('--update', action='store_true', help='update all models')
+
+    
+    # You can remove the following arguments also and set those values in the detect() function itself, only if you find out how to se the variables like that below with -
     parser.add_argument('--img-size', type=int, default=640, help='inference size (pixels)')
+    parser.add_argument('--agnostic-nms', action='store_true', help='class-agnostic NMS')
+    parser.add_argument('--save-conf', action='store_true', help='save confidences in --save-txt labels')
     parser.add_argument('--conf-thres', type=float, default=0.25, help='object confidence threshold')
     parser.add_argument('--iou-thres', type=float, default=0.45, help='IOU threshold for NMS')
-    parser.add_argument('--device', default='', help='cuda device, i.e. 0 or 0,1,2,3 or cpu')
-    parser.add_argument('--view-img', action='store_true', help='display results')
-    parser.add_argument('--save-txt', action='store_true', help='save results to *.txt')
-    parser.add_argument('--save-conf', action='store_true', help='save confidences in --save-txt labels')
-    parser.add_argument('--nosave', action='store_true', help='do not save images/videos')
-    parser.add_argument('--classes', nargs='+', type=int, help='filter by class: --class 0, or --class 0 2 3')
-    parser.add_argument('--agnostic-nms', action='store_true', help='class-agnostic NMS')
-    parser.add_argument('--augment', action='store_true', help='augmented inference')
-    parser.add_argument('--update', action='store_true', help='update all models')
-    parser.add_argument('--project', default='runs/detect', help='save results to project/name')
-    parser.add_argument('--name', default='exp', help='save results to project/name')
-    parser.add_argument('--exist-ok', action='store_true', help='existing project/name ok, do not increment')
-    parser.add_argument('--no-trace', action='store_true', help='don`t trace model')
+
+
+
+
+
+    parser.set_defaults(download=True)
     opt = parser.parse_args()
     print(opt)
-    #check_requirements(exclude=('pycocotools', 'thop'))
+
+    # check_requirements(exclude=('pycocotools', 'thop'))
+    # if opt.download and not os.path.exists(opt.weights[0]):
+    #     print('Model weights not found. Attempting to download now...')
+    #     download('./')
 
     with torch.no_grad():
         if opt.update:  # update all models (to fix SourceChangeWarning)
@@ -242,3 +253,7 @@ if __name__ == '__main__':
                 strip_optimizer(opt.weights)
         else:
             detect()
+
+
+
+
