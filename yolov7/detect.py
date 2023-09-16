@@ -18,39 +18,26 @@ from utils.torch_utils import select_device, load_classifier, time_synchronized,
 
 def detect():
     source, weights, view_img, save_txt, imgsz, trace = opt.source, opt.weights, opt.view_img, opt.save_txt, opt.img_size, not opt.no_trace
-    save_img = not opt.nosave and not source.endswith(
-        '.txt')  # save inference images
-
     # source = http://192.168.29.187:8080/video?type=some.mjpeg
     source = 'sources.txt'
-    # source = 0
-    # source = str(source)
     weights = 'model/yolov7-tiny.pt'
-    # view_img =
-    # save_txt =
-    device = 'cpu'
-    imgsz = 640
-    augment = True
-    exist_ok = True
-    trace = 0
     project = 'Output'
-    save_img = True
-
+    exist_ok = True
     save_img = not opt.nosave and not source.endswith(
         '.txt')  # save inference images
     webcam = source.isnumeric() or source.endswith('.txt') or source.lower().startswith(
         ('rtsp://', 'rtmp://', 'http://', 'https://'))
 
+    save_img = True
+    save_txt = True
+
     # Directories
-    save_dir = Path(increment_path(Path(opt.project) / opt.name,
-                                   exist_ok=opt.exist_ok))  # increment run
-    (save_dir / 'labels' if save_txt else save_dir).mkdir(parents=True,
-                                                          exist_ok=True)  # make dir
     today_date = datetime.datetime.now().strftime(
         "%Y-%m-%d")  # Get today's date in YYYY-MM-DD format
     opt.project = 'Output/'+today_date
     current_time = datetime.datetime.now().strftime("%H-%M-%S")
     opt.name = ''
+    # save_dir = Path(increment_path(Path(opt.project), exist_ok=opt.exist_ok))  # increment run
     save_dir = Path(project, exist_ok=exist_ok)  # increment run
     (save_dir if save_txt else save_dir).mkdir(
         parents=True, exist_ok=True)  # make dir
@@ -98,8 +85,8 @@ def detect():
     old_img_w = old_img_h = imgsz
     old_img_b = 1
 
+    t0 = time.time()
     for path, img, im0s, vid_cap in dataset:
-        t0 = time.time()
         img = torch.from_numpy(img).to(device)
         img = img.half() if half else img.float()  # uint8 to fp16/32
         img /= 255.0  # 0 - 255 to 0.0 - 1.0
@@ -137,12 +124,8 @@ def detect():
             else:
                 p, s, im0, frame = path, '', im0s, getattr(dataset, 'frame', 0)
 
-            p = Path(p)  # to Path
-            save_path = str(save_dir / p.name)  # img.jpg
-            txt_path = str(save_dir / 'labels' / p.stem) + \
-                ('' if dataset.mode == 'image' else f'_{frame}')  # img.txt
-            # normalization gain whwh
-            gn = torch.tensor(im0.shape)[[1, 0, 1, 0]]
+            p = Path(p)
+            # current_time = datetime.datetime.now().strftime("%H-%M-%S")
             save_path = str(save_dir / current_time)  # img.jpg
             txt_path = str(save_dir / current_time)  # img.txt
             # normalization gain whwh
@@ -157,24 +140,6 @@ def detect():
                     n = (det[:, -1] == c).sum()  # detections per class
                     # add to string
                     s += f"{n} {names[int(c)]}{'s' * (n > 1)}, "
-
-                # Write results
-                for *xyxy, conf, cls in reversed(det):
-                    if save_txt:  # Write to file
-                        xywh = (xyxy2xywh(torch.tensor(xyxy).view(1, 4)
-                                          ) / gn).view(-1).tolist()  # normalized xywh
-                        # label format
-                        line = (
-                            cls, *xywh, conf) if opt.save_conf else (cls, *xywh)
-                        with open(txt_path + '.txt', 'a') as f:
-                            f.write(('%g ' * len(line)).rstrip() % line + '\n')
-
-                    if save_img or view_img:  # Add bbox to image
-                        label = f'{names[int(cls)]} {conf:.2f}'
-                        plot_one_box(xyxy, im0, label=label,
-                                     color=colors[int(cls)], line_thickness=1)
-                    # s += f"{n} {names[int(c)]}{'s' * (n > 1)}, "  # This line creates for all types of objects but i need for only person, hence use below line.
-                    s += f"{n} {names[int(c)]}{'s' * (n > 1)}"
 
                 frame_time = datetime.datetime.now().strftime("%H-%M-%S")
                 if save_txt and not dataset.mode == 'image':  # Write to file normalized xywh
@@ -207,18 +172,8 @@ def detect():
 
             # Stream results
             if view_img:
-                # Display the image in a window
-                cv2.putText(im0, 'Result : ' + s[3:], (10, im0.shape[0] - 10),
-                            cv2.FONT_HERSHEY_SIMPLEX, 1.2, (255, 255, 255), 2)
-                tit = 'People Detector / Counter'
-                cv2.imshow(tit, im0)
-
-            # Tkinter GUI
-
-                # Wait for a key press
-                if cv2.waitKey(1) == ord('q'):  # q to quit
-                    cv2.destroyAllWindows()
-                    raise StopIteration
+                cv2.imshow(str(p), im0)
+                cv2.waitKey(10)  # 1 millisecond
 
             # Save results (image with detections)
             if save_img:
@@ -242,13 +197,11 @@ def detect():
                             save_path, cv2.VideoWriter_fourcc(*'mp4v'), fps, (w, h))
                     vid_writer.write(im0)
 
-        # This code is just to print data
-        # if save_txt or save_img:
-        #     s = f"\n{len(list(save_dir.glob('labels/*.txt')))} labels saved to {save_dir / 'labels'}" if save_txt else ''
-        #     print(f"Results saved to {save_dir}{s}")
+    if save_txt or save_img:
+        s = f"\n{len(list(save_dir.glob('labels/*.txt')))} labels saved to {save_dir / 'labels'}" if save_txt else ''
+        # print(f"Results saved to {save_dir}{s}")
 
-        print(f'Done. ({time.time() - t0:.3f}s)')
-        # time.sleep(1)
+    print(f'Done. ({time.time() - t0:.3f}s)')
 
 
 if __name__ == '__main__':
@@ -274,7 +227,7 @@ if __name__ == '__main__':
                         help='save confidences in --save-txt labels')
     parser.add_argument('--nosave', action='store_true',
                         help='do not save images/videos')
-    parser.add_argument('--classes', nargs='+', type=int,
+    parser.add_argument('--classes', default=0, nargs='+', type=int,
                         help='filter by class: --class 0, or --class 0 2 3')
     parser.add_argument('--agnostic-nms', action='store_true',
                         help='class-agnostic NMS')
@@ -282,7 +235,7 @@ if __name__ == '__main__':
                         help='augmented inference')
     parser.add_argument('--update', action='store_true',
                         help='update all models')
-    parser.add_argument('--project', default='runs/detect',
+    parser.add_argument('--project',
                         help='save results to project/name')
     parser.add_argument('--name', default='exp',
                         help='save results to project/name')
@@ -292,7 +245,7 @@ if __name__ == '__main__':
                         help='don`t trace model')
     opt = parser.parse_args()
     print(opt)
-    #check_requirements(exclude=('pycocotools', 'thop'))
+    # check_requirements(exclude=('pycocotools', 'thop'))
 
     with torch.no_grad():
         if opt.update:  # update all models (to fix SourceChangeWarning)
