@@ -1,0 +1,1 @@
+http://192.168.29.187:8080/video?type=some.mjpeg
