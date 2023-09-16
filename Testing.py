@@ -1,6 +1,8 @@
 # Run the Following code in terminal to start the main code :
 # python yolov7/detect.py --weights model/yolov7-tiny.pt --conf 0.25 --img-size 640 --source http://192.168.29.188:8080/video?type=some.mjpeg --class 0
 
+# For linux
+# python3 yolov7/detect.py --weights model/yolov7-tiny.pt --conf 0.25 --img-size 640 --source http://192.168.29.188:8080/video?type=some.mjpeg --class 0
 
 # TODO : 1. Once you removed all the unnecessary stuff you can bring all the code from yolov7 outside or you can keep it inside and change the folder name to may be  core and run the above command from root folder.
 
