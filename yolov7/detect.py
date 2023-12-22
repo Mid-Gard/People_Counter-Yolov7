@@ -32,8 +32,7 @@ def detect():
     save_txt = True
 
     # Directories
-    today_date = datetime.datetime.now().strftime(
-        "%Y-%m-%d")  # Get today's date in YYYY-MM-DD format
+    today_date = datetime.datetime.now().strftime("%Y-%m-%d")  # Get today's date in YYYY-MM-DD format
     opt.project = 'Output/'+today_date
     current_time = datetime.datetime.now().strftime("%H-%M-%S")
     opt.name = ''
@@ -152,18 +151,16 @@ def detect():
                     for *xyxy, conf, cls in reversed(det):
                         # Enable Below code if you want to save the confidence
                         if save_txt and not dataset.mode == 'image':  # Write to file
-                            xywh = (xyxy2xywh(torch.tensor(xyxy).view(
-                                1, 4)) / gn).view(-1).tolist()  # normalized xywh
-                            # label format
-                            line = (
-                                cls, *xywh, conf) if opt.save_conf else (cls, *xywh)
-                            with open(txt_path + '.txt', 'a') as f:
-                                f.write(('\nProbability :' + ' %g ' *
-                                         len(line)).rstrip() % line + '\n')
+                            xywh = (xyxy2xywh(torch.tensor(xyxy).view(1, 4)) / gn).view(-1).tolist()  # normalized xywh
+                #             # label format
+                #             line = (
+                #                 cls, *xywh, conf) if opt.save_conf else (cls, *xywh)
+                #             with open(txt_path + '.txt', 'a') as f:
+                #                 f.write(('\nProbability :' + ' %g ' *
+                #                          len(line)).rstrip() % line + '\n')
                         # Add bbox to image
                         if save_img or view_img:
-                            label = f'{names[int(cls)]} {conf:.2f}'
-                            plot_one_box(xyxy, im0, label=label,
+                            plot_one_box(xyxy, im0,
                                          color=colors[int(cls)], line_thickness=1)
 
             # Print time (inference + NMS)
