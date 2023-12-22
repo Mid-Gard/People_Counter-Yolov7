@@ -5,4 +5,8 @@ MyReadme.md
 yolov7.pt
 traced_model.pt
 
+*.jpg
+*.png
+*/__pycache__
+*.pyc
 env/
