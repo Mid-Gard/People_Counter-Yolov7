@@ -1,13 +1,11 @@
 import argparse
 import time
 from pathlib import Path
-
 import cv2
 import torch
 import torch.backends.cudnn as cudnn
 from numpy import random
 import datetime
-
 from models.experimental import attempt_load
 from utils.datasets import LoadStreams, LoadImages
 from utils.general import check_img_size, check_requirements, check_imshow, non_max_suppression, apply_classifier, \
@@ -17,19 +15,30 @@ from utils.torch_utils import select_device, load_classifier, time_synchronized,
 
 
 def detect():
-    source, weights, view_img, save_txt, imgsz, trace = opt.source, opt.weights, opt.view_img, opt.save_txt, opt.img_size, not opt.no_trace
-    # source = http://192.168.29.187:8080/video?type=some.mjpeg
-    source = 'sources.txt'
+    # source, weights, view_img, save_txt, imgsz, trace = opt.source, opt.weights, opt.view_img, opt.save_txt, opt.img_size, not opt.no_trace
     weights = 'model/yolov7-tiny.pt'
-    project = 'Output'
+    
+    # source = config.IP_Url
+    source='sources.txt'
+    # source = 0
+    # source = str(source)
+    # view_img = 
+    # save_txt = 
+    device = 'cpu'
+    imgsz = 640
+    augment = True
     exist_ok = True
-    save_img = not opt.nosave and not source.endswith(
-        '.txt')  # save inference images
+    trace = 0
+    project = 'Output'
+    classes = [0,1,3,14,15,16,18,19,21]            # filter by class: --class 0, or --class 0 2 3
+    # agnostic-nms = True
+    # save_img = not opt.nosave and not source.endswith('.txt')  # save inference images, That is basically if you are storing all teh Ip webcame in the soruces.txt then since all are not of same resolution, it makes the save_img flag False so it dont save the footage.
+    # save_img = True # Okay so the problem is if you are using multiple cameras of defferent resolution, then it creates a video, but it doest have the higer reso camera frames.
+    save_txt = True
+    save_img=False
     webcam = source.isnumeric() or source.endswith('.txt') or source.lower().startswith(
         ('rtsp://', 'rtmp://', 'http://', 'https://'))
 
-    save_img = True
-    save_txt = True
 
     # Directories
     today_date = datetime.datetime.now().strftime("%Y-%m-%d")  # Get today's date in YYYY-MM-DD format
@@ -75,6 +84,7 @@ def detect():
 
     # Get names and colors
     names = model.module.names if hasattr(model, 'module') else model.names
+    print(names)
     colors = [[random.randint(0, 255) for _ in range(3)] for _ in names]
 
     # Run inference
@@ -143,7 +153,7 @@ def detect():
                 frame_time = datetime.datetime.now().strftime("%H-%M-%S")
                 if save_txt and not dataset.mode == 'image':  # Write to file normalized xywh
                     with open(txt_path + '.txt', 'a') as f:
-                        f.write(('\nTime : ' + frame_time + '\nRESULT : ' + s))
+                        f.write(('\nTime : ' + frame_time + '\nRESULT : Camera : ' + s))
 
                 # Only do this if you are showing the cv window
                 if view_img:
@@ -169,8 +179,15 @@ def detect():
 
             # Stream results
             if view_img:
-                cv2.imshow(str(p), im0)
-                cv2.waitKey(10)  # 1 millisecond
+                # Display the image in a window
+                cv2.putText(im0, 'Result : ' + s[3:], (10, im0.shape[0] - 10), cv2.FONT_HERSHEY_SIMPLEX, 1.2, (255, 255, 255), 2)
+                tit = 'Farm Monitoring - Openvino Yolov7 CCTV'
+                cv2.imshow(tit , im0)
+
+                # Wait for a key press
+                if cv2.waitKey(1) == ord('q'):  # q to quit
+                    cv2.destroyAllWindows()
+                    raise StopIteration
 
             # Save results (image with detections)
             if save_img:
@@ -194,9 +211,9 @@ def detect():
                             save_path, cv2.VideoWriter_fourcc(*'mp4v'), fps, (w, h))
                     vid_writer.write(im0)
 
-    if save_txt or save_img:
-        s = f"\n{len(list(save_dir.glob('labels/*.txt')))} labels saved to {save_dir / 'labels'}" if save_txt else ''
-        # print(f"Results saved to {save_dir}{s}")
+    # if save_txt or save_img:
+    #     s = f"\n{len(list(save_dir.glob('labels/*.txt')))} labels saved to {save_dir / 'labels'}" if save_txt else ''
+    #     # print(f"Results saved to {save_dir}{s}")
 
     print(f'Done. ({time.time() - t0:.3f}s)')
 
