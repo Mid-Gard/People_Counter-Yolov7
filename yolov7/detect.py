@@ -30,7 +30,7 @@ def detect():
     exist_ok = True
     trace = 0
     project = 'Output'
-    classes = [0,1,3,14,15,16,18,19,21]            # filter by class: --class 0, or --class 0 2 3
+    classes = [0,1,3,14,15,16,18,19,20]            # filter by class: --class 0, or --class 0 2 3
     # agnostic-nms = True
     # save_img = not opt.nosave and not source.endswith('.txt')  # save inference images, That is basically if you are storing all teh Ip webcame in the soruces.txt then since all are not of same resolution, it makes the save_img flag False so it dont save the footage.
     # save_img = True # Okay so the problem is if you are using multiple cameras of defferent resolution, then it creates a video, but it doest have the higer reso camera frames.
@@ -170,8 +170,7 @@ def detect():
                 #                          len(line)).rstrip() % line + '\n')
                         # Add bbox to image
                         if save_img or view_img:
-                            plot_one_box(xyxy, im0,
-                                         color=colors[int(cls)], line_thickness=1)
+                            plot_one_box(xyxy, im0, color=colors[int(cls)], line_thickness=1)
 
             # Print time (inference + NMS)
             # print(f'{s}Done. ({(1E3 * (t2 - t1)):.1f}ms) Inference, ({(1E3 * (t3 - t2)):.1f}ms) NMS')
