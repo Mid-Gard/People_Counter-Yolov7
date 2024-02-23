@@ -1,1 +1,5 @@
+<<<<<<< HEAD
 http://192.168.29.85:8080/video?type=some.mjpeg
+=======
+http://192.168.0.176:8080/video?type=some.mjpeg
+>>>>>>> a0034090a2a3aed287811f11673431945e545f72

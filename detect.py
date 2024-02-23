@@ -25,11 +25,16 @@ def detect(save_img=False):
     
     # source = config.IP_Url
     source='sources.txt'
+<<<<<<< HEAD
     
     #---------- For Webcam   ------
     # source = 0
     # source = str(source)
     
+=======
+    # source = 0
+    # source = str(source)
+>>>>>>> a0034090a2a3aed287811f11673431945e545f72
     weights = 'yolov7.pt'
     # view_img = 
     # save_txt = 
