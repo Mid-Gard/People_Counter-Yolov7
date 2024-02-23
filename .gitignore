@@ -14,3 +14,4 @@ env
 *.jpg
 *.jpeg
 *.pyc
+Yolov8/models/yolov8n-seg.pt
