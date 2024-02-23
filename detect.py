@@ -24,9 +24,9 @@ def detect(save_img=False):
     # source, weights, view_img, save_txt, imgsz, trace= opt.source, opt.weights, opt.view_img, opt.save_txt, opt.img_size, not opt.no_trace
     
     # source = config.IP_Url
-    # source='sources.txt'
-    source = 0
-    source = str(source)
+    source='sources.txt'
+    # source = 0
+    # source = str(source)
     weights = 'yolov7.pt'
     # view_img = 
     # save_txt = 
