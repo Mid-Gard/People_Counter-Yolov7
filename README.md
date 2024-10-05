@@ -10,8 +10,6 @@
 ## Steps to run Code
 - Clone the repository.
 
-- Goto the cloned folder: ``` cd UsingYolov7 ```
-
 - Create a  envirnoment (Recommended, If you dont want to disturb python packages)
 
 - Install all the packages :
